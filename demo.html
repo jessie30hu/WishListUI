@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WishSync (人生愿望社交 App) — 全功能 UI 交互原型 V3.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.85);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --gradient-aurora: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+      --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    [data-theme='light'] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.9);
+      --border-color: rgba(226, 232, 240, 0.9);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .glass-panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+    }
+    .btn-primary {
+      background: var(--gradient-aurora);
+      color: #ffffff;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-full);
+      padding: 0.6rem 1.3rem;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      padding: 0.55rem 1.1rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .badge-aurora {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.2));
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: #c084fc;
+      padding: 0.2rem 0.75rem;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .text-gradient {
+      background: var(--gradient-aurora);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .wish-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px); z-index: 1000; display: flex;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-content {
+      background: var(--bg-secondary); border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg); width: 100%; max-width: 600px;
+      max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const MOCK_USER = {
+      name: 'Leo Zhang',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+      bio: 'Seeking life adventures, aurora nights, and building soul-aligned ideas. 🌌✈️',
+      location: 'Shanghai / Remote',
+      verified: true,
+      wishesCount: 8,
+      completedCount: 3,
+      heartsCount: 142,
+      isPremium: false
+    };
+
+    const INITIAL_WISHES = [
+      {
+        id: 'w1',
+        title: 'See the Northern Lights in Iceland',
+        desc: 'Sleep under a glass dome igloo in Reykjavik and watch aurora borealis light up the Arctic sky.',
+        cover: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&w=800&q=80',
+        category: 'Travel',
+        location: 'Iceland',
+        hearts: 84,
+        hearted: true,
+        user: 'Leo Zhang',
+        userAvatar: MOCK_USER.avatar,
+        status: 'Planned',
+        scope: 'Macro'
+      },
+      {
+        id: 'w2',
+        title: 'Road trip across New Zealand South Island',
+        desc: 'Rent a campervan, drive past Lake Tekapo, Mount Cook, and camp under the Milky Way.',
+        cover: 'https://images.unsplash.com/photo-1507699622108-4be3abd695ad?auto=format&fit=crop&w=800&q=80',
+        category: 'Adventure',
+        location: 'New Zealand',
+        hearts: 62,
+        hearted: false,
+        user: 'Elena Rostova',
+        userAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
+        status: 'In Progress',
+        scope: 'Macro'
+      },
+      {
+        id: 'w3',
+        title: 'Try 3-Star Michelin Omakase in Tokyo',
+        desc: 'Experience authentic edomae sushi crafted by master chefs during cherry blossom week.',
+        cover: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80',
+        category: 'Food',
+        location: 'Tokyo, Japan',
+        hearts: 45,
+        hearted: false,
+        user: 'Kenji Sato',
+        userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+        status: 'Planned',
+        scope: 'Micro'
+      }
+    ];
+
+    const MOCK_MATCHES = [
+      {
+        id: 'm1',
+        name: 'Elena Rostova',
+        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
+        location: 'Reykjavik / Berlin',
+        score: 96,
+        explanation: 'You both dream of witnessing the Northern Lights and capturing aurora skies in Iceland.',
+        commonCount: 5,
+        matchedWishes: ['See Northern Lights in Iceland', 'Road trip New Zealand', 'Sleep under stars']
+      },
+      {
+        id: 'm2',
+        name: 'Sophia Chen',
+        avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
+        location: 'Auckland / Remote',
+        score: 91,
+        explanation: 'You both share a passion for campervan road trips, alpine lakes, and nomadic freedom.',
+        commonCount: 4,
+        matchedWishes: ['Campervan NZ roadtrip', 'Live abroad for 6+ months', 'PADI Diving']
+      }
+    ];
+
+    function App() {
+      const [tab, setTab] = useState('home');
+      const [lang, setLang] = useState('zh');
+      const [theme, setTheme] = useState('dark');
+      const [wishes, setWishes] = useState(INITIAL_WISHES);
+      const [isCreateOpen, setIsCreateOpen] = useState(false);
+      const [isPremiumOpen, setIsPremiumOpen] = useState(false);
+      const [user, setUser] = useState(MOCK_USER);
+
+      const [newTitle, setNewTitle] = useState('');
+      const [newDesc, setNewDesc] = useState('');
+      const [newCat, setNewCat] = useState('Travel');
+
+      useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+      }, [theme]);
+
+      const toggleHeart = (id) => {
+        setWishes(wishes.map(w => w.id === id ? { ...w, hearted: !w.hearted, hearts: w.hearted ? w.hearts - 1 : w.hearts + 1 } : w));
+      };
+
+      const handleAddWish = (e) => {
+        e.preventDefault();
+        if (!newTitle.trim()) return;
+        const created = {
+          id: 'w_' + Date.now(),
+          title: newTitle,
+          desc: newDesc,
+          cover: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&w=800&q=80',
+          category: newCat,
+          location: 'Global',
+          hearts: 1,
+          hearted: true,
+          user: user.name,
+          userAvatar: user.avatar,
+          status: 'Planned',
+          scope: 'Macro'
+        };
+        setWishes([created, ...wishes]);
+        setUser({ ...user, wishesCount: user.wishesCount + 1 });
+        setIsCreateOpen(false);
+        setNewTitle('');
+        setNewDesc('');
+      };
+
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+          {/* Header */}
+          <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--gradient-aurora)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800 }}>🌌</div>
+              <div>
+                <h1 className="text-gradient" style={{ fontSize: '1.2rem', fontWeight: 800 }}>WishSync</h1>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{lang === 'zh' ? '找到和你拥有相似人生愿望的人' : 'Find someone to dream with'}</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+              <button className="btn-primary" onClick={() => setIsCreateOpen(true)}>+ {lang === 'zh' ? '创建愿望' : 'Create Wish'}</button>
+              <button className="btn-secondary" onClick={() => setIsPremiumOpen(true)}>👑 PRO</button>
+              <button className="btn-secondary" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>{lang === 'zh' ? '中' : 'EN'}</button>
+              <button className="btn-secondary" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☀️' : '🌙'}</button>
+            </div>
+          </header>
+
+          {/* Navigation Bar */}
+          <nav style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', padding: '0.6rem', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+            {['home', 'wishes', 'people', 'messages', 'visitors', 'profile'].map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  background: tab === t ? 'var(--gradient-aurora)' : 'transparent',
+                  color: tab === t ? '#fff' : 'var(--text-secondary)',
+                  border: 'none', borderRadius: 9999, padding: '0.45rem 1.1rem', fontSize: '0.85rem', fontWeight: tab === t ? 700 : 500, cursor: 'pointer'
+                }}
+              >
+                {t.toUpperCase()}
+              </button>
+            ))}
+          </nav>
+
+          {/* Main Body */}
+          <main style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '1.5rem', flexGrow: 1 }}>
+            
+            {/* HOME VIEW */}
+            {tab === 'home' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {/* Hero */}
+                <div className="glass-panel" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,27,75,0.9))' }}>
+                  <span className="badge-aurora">PRD V3.0 Semantic Engine Prototype</span>
+                  <h2 className="text-gradient" style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                    {lang === 'zh' ? '找到和你拥有相似人生愿望的人' : 'Find someone to dream with.'}
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '1.2rem' }}>
+                    {lang === 'zh' ? '记录你这一生最想经历的事，找到陪伴你一起出发的同路人。' : 'Defined by what you want to experience in your lifetime.'}
+                  </p>
+                  <button className="btn-primary" onClick={() => setIsCreateOpen(true)}>+ {lang === 'zh' ? '记录我的愿望' : 'Post Your Wish'}</button>
+                </div>
+
+                {/* AI Match Banner */}
+                <div className="glass-panel" style={{ padding: '1.2rem', border: '1px solid rgba(168,85,247,0.4)', background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(236,72,153,0.12))' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                      <img src={MOCK_MATCHES[0].avatar} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
+                      <div>
+                        <h4 style={{ fontWeight: 700 }}>{MOCK_MATCHES[0].name}</h4>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{MOCK_MATCHES[0].location}</p>
+                      </div>
+                    </div>
+                    <span className="badge-aurora">⚡ {MOCK_MATCHES[0].score}% Common Wish Match</span>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>"{MOCK_MATCHES[0].explanation}"</p>
+                </div>
+
+                {/* Wishes Grid */}
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{lang === 'zh' ? '愿望灵感广场' : 'Discover Wishes'}</h3>
+                <div className="wish-grid">
+                  {wishes.map(w => (
+                    <div key={w.id} className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ position: 'relative', height: 160 }}>
+                        <img src={w.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <span className="badge-aurora" style={{ position: 'absolute', top: 10, left: 10 }}>{w.category}</span>
+                      </div>
+                      <div style={{ padding: '1rem', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <h4 style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.4rem' }}>{w.title}</h4>
+                          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.8rem' }}>{w.desc}</p>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>by {w.user}</span>
+                          <button onClick={() => toggleHeart(w.id)} style={{ background: w.hearted ? 'rgba(236,72,153,0.2)' : 'rgba(255,255,255,0.06)', border: '1px solid var(--border-color)', color: w.hearted ? '#ec4899' : 'var(--text-secondary)', borderRadius: 9999, padding: '0.3rem 0.7rem', fontSize: '0.8rem', cursor: 'pointer' }}>
+                            ♥ {w.hearts}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* WISHES VIEW */}
+            {tab === 'wishes' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Bucket List & Wish Hub</h2>
+                <div className="wish-grid">
+                  {wishes.map(w => (
+                    <div key={w.id} className="glass-panel" style={{ padding: '1.2rem' }}>
+                      <span className="badge-aurora">{w.category}</span>
+                      <h3 style={{ marginTop: '0.5rem', fontWeight: 700 }}>{w.title}</h3>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.5rem 0' }}>{w.desc}</p>
+                      <button onClick={() => toggleHeart(w.id)} className="btn-secondary">♥ {w.hearts} Hearts</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* PEOPLE VIEW */}
+            {tab === 'people' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>People Who Share Your Dreams</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                  {MOCK_MATCHES.map(m => (
+                    <div key={m.id} className="glass-panel" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                      <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+                        <img src={m.avatar} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                        <div>
+                          <h4 style={{ fontWeight: 700 }}>{m.name}</h4>
+                          <span className="badge-aurora">{m.score}% Match</span>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>✨ {m.commonCount} Wishes in common</p>
+                      <button className="btn-primary" style={{ justifyContent: 'center' }}>Send Message</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* MESSAGES VIEW */}
+            {tab === 'messages' && (
+              <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center' }}>
+                <h3>💬 Interactive Messages & Shared Wish Workspace</h3>
+                <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Full chat system initialized with Wish Card sharing & "Let's Do It Together" workflow.</p>
+              </div>
+            )}
+
+            {/* VISITORS VIEW */}
+            {tab === 'visitors' && (
+              <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h3>👁️ Profile Visitors</h3>
+                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.04)', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+                    <img src={MOCK_MATCHES[0].avatar} style={{ width: 40, height: 40, borderRadius: '50%' }} />
+                    <div>
+                      <strong>Elena Rostova</strong>
+                      <p style={{ fontSize: '0.75rem', color: '#ec4899' }}>🔥 Viewed repeatedly (5 times · 2 hours ago)</p>
+                    </div>
+                  </div>
+                  <button className="btn-secondary" onClick={() => setIsPremiumOpen(true)}>View</button>
+                </div>
+              </div>
+            )}
+
+            {/* PROFILE VIEW */}
+            {tab === 'profile' && (
+              <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center' }}>
+                <img src={user.avatar} style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #a855f7' }} />
+                <h2 style={{ marginTop: '0.5rem', fontWeight: 800 }}>{user.name}</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{user.location}</p>
+                <p style={{ margin: '1rem 0', color: 'var(--text-secondary)' }}>"{user.bio}"</p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+                  <div><strong>{user.wishesCount}</strong> <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Wishes</p></div>
+                  <div><strong>{user.completedCount}</strong> <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Completed</p></div>
+                  <div><strong>{user.heartsCount}</strong> <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Hearts</p></div>
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* Modal: Create Wish */}
+          {isCreateOpen && (
+            <div className="modal-overlay" onClick={() => setIsCreateOpen(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ padding: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1rem' }}>+ Post New Life Wish</h3>
+                <form onSubmit={handleAddWish} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Wish Title (e.g. See Northern Lights in Iceland)"
+                    value={newTitle}
+                    onChange={e => setNewTitle(e.target.value)}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: 8, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', color: '#fff', outline: 'none' }}
+                  />
+                  <textarea
+                    rows="3"
+                    placeholder="Description & details..."
+                    value={newDesc}
+                    onChange={e => setNewDesc(e.target.value)}
+                    style={{ padding: '0.6rem 0.8rem', borderRadius: 8, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', color: '#fff', outline: 'none' }}
+                  />
+                  <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '0.5rem' }}>Post Wish</button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Premium */}
+          {isPremiumOpen && (
+            <div className="modal-overlay" onClick={() => setIsPremiumOpen(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ padding: '2rem', textAlign: 'center' }}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>👑 WishSync Premium</h3>
+                <p style={{ color: 'var(--text-secondary)', margin: '0.5rem 0 1.5rem 0' }}>See who viewed your profile, unlock repeated visitors & 3x wish boost matching.</p>
+                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setUser({ ...user, isPremium: true }); setIsPremiumOpen(false); }}>Unlock Premium ($4.99/mo)</button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
